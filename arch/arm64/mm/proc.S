@@ -151,11 +151,13 @@ alternative_if ARM64_WORKAROUND_QCOM_FALKOR_E1003
 	pop	{x1,x4}
 alternative_else_nop_endif
 #endif
-	push {x1,x4}
+	mmid	x1, x1			// get mm->context.id
+	bfi	x4, x1, #48, #16	// set the ASID
+	push	x4				// preserve x4 register value
 	mov x0, ARM_SMCCC_CALL_VAL(1, 1, 53, 0)
 	// raw call, OEN 53, funcid 0, 64-bit fast
 	smc
-	pop {x1,x4}
+	pop	x4
 #ifdef CONFIG_CAVIUM_ERRATUM_27456
 alternative_if ARM64_WORKAROUND_CAVIUM_27456
 	// nothing to preserve, since this erratum uses nothing
