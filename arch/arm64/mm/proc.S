@@ -166,7 +166,7 @@ alternative_else_nop_endif
 	stp	x1, x4, [sp]
 	//mov x0, #OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1
 	mov	x0, #OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1_LOW_LOW
-	movk	x0, #OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL13_LOW_HIGH, lsl #16
+	movk	x0, #OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1_LOW_HIGH, lsl #16
 	movk	x0, #OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1_HIGH_LOW, lsl #32
 	movk	x0, #OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1_HIGH_HIGH, lsl #48
 	// raw call, OEN 53, funcid 0, 64-bit fast
