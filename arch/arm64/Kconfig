@@ -970,6 +970,18 @@ config ARM64_MODULE_PLTS
 	select ARM64_MODULE_CMODEL_LARGE
 	select HAVE_MOD_ARCH_SPECIFIC
 
+config RKP
+	bool "OP-TEE based real time kernel protection"
+	default n
+	depends on OPTEE
+	help
+	  This implements real-time kernel protection based on customized
+	  OP-TEE implementation. This may incur performance overhead due
+	  to having secure monitor calls (SMCs) over certain kernel
+	  operations.
+
+	  If in doubt, say N.
+
 config RELOCATABLE
 	bool
 	help

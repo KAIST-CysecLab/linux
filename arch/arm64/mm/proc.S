@@ -138,12 +138,39 @@ ENDPROC(cpu_do_resume)
  *	- pgd_phys - physical address of new TTB
  */
 ENTRY(cpu_do_switch_mm)
+#ifdef CONFIG_RKP
+	// smc uses x1~x7 as argument, therefore move x0 elsewhere.
+	mov	x4, x0
+#ifdef CONFIG_QCOM_FALKOR_ERRATUM_1003
+alternative_if ARM64_WORKAROUND_QCOM_FALKOR_E1003
+	mov	x0, ARM_SMCCC_CALL_VAL(1, 1, 54, 0)
+	// arguments are x1, x4 (x2, x3 are scratch?)
+	push	{x1,x4}
+	// raw call, OEN 54, funcid 0, 64-bit fast
+	smc
+	pop	{x1,x4}
+alternative_else_nop_endif
+#endif
+	push {x1,x4}
+	mov x0, ARM_SMCCC_CALL_VAL(1, 1, 53, 0)
+	// raw call, OEN 53, funcid 0, 64-bit fast
+	smc
+	pop {x1,x4}
+#ifdef CONFIG_CAVIUM_ERRATUM_27456
+alternative_if ARM64_WORKAROUND_CAVIUM_27456
+	// nothing to preserve, since this erratum uses nothing
+	mov x0, ARM_SMCCC_CALL_VAL(1, 1, 54, 0)
+	smc
+alternative_else_nop_endif
+#endif
+#else
 	pre_ttbr0_update_workaround x0, x2, x3
 	mmid	x1, x1				// get mm->context.id
 	bfi	x0, x1, #48, #16		// set the ASID
 	msr	ttbr0_el1, x0			// set TTBR0
 	isb
 	post_ttbr0_update_workaround
+#endif
 	ret
 ENDPROC(cpu_do_switch_mm)
 
