@@ -27,6 +27,9 @@
 #include <asm/pgtable-hwdef.h>
 #include <asm/cpufeature.h>
 #include <asm/alternative.h>
+#ifdef CONFIG_RKP
+#include <asm/rkp.h>
+#endif
 
 #ifdef CONFIG_ARM64_64K_PAGES
 #define TCR_TG_FLAGS	TCR_TG0_64K | TCR_TG1_64K
@@ -143,26 +146,30 @@ ENTRY(cpu_do_switch_mm)
 	mov	x4, x0
 #ifdef CONFIG_QCOM_FALKOR_ERRATUM_1003
 alternative_if ARM64_WORKAROUND_QCOM_FALKOR_E1003
-	mov	x0, ARM_SMCCC_CALL_VAL(1, 1, 54, 0)
+	mov	x0, #OPTEE_RKP_SMCCC_CALL_WORKAROUND_QCOM_FALKOR_E1003
 	// arguments are x1, x4 (x2, x3 are scratch?)
-	push	{x1,x4}
+	sub	sp, sp, #16	// open up stack space
+	stp	x1, x4, [sp]	// push x1, x4
 	// raw call, OEN 54, funcid 0, 64-bit fast
-	smc
-	pop	{x1,x4}
+	smc	#0
+	ldp	x1, x4, [sp]
+	add	sp, sp, #16
 alternative_else_nop_endif
 #endif
 	mmid	x1, x1			// get mm->context.id
 	bfi	x4, x1, #48, #16	// set the ASID
-	push	x4				// preserve x4 register value
-	mov x0, ARM_SMCCC_CALL_VAL(1, 1, 53, 0)
+	sub	sp, sp, #16
+	stp	x1, x4, [sp]
+	mov x0, #OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1
 	// raw call, OEN 53, funcid 0, 64-bit fast
-	smc
-	pop	x4
+	smc	#0
+	ldp	x1, x4, [sp]
+	add	sp, sp, #16
 #ifdef CONFIG_CAVIUM_ERRATUM_27456
 alternative_if ARM64_WORKAROUND_CAVIUM_27456
 	// nothing to preserve, since this erratum uses nothing
-	mov x0, ARM_SMCCC_CALL_VAL(1, 1, 54, 0)
-	smc
+	mov x0, #OPTEE_RKP_SMCCC_CALL_WORKAROUND_CAVIUM_27456
+	smc	#0
 alternative_else_nop_endif
 #endif
 #else
