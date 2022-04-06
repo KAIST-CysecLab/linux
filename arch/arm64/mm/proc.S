@@ -171,6 +171,14 @@ alternative_else_nop_endif
 	movk	x0, #OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1_HIGH_HIGH, lsl #48
 	// raw call, OEN 53, funcid 0, 64-bit fast
 	smc	#0
+	isb
+	// did I do well?
+	cbz	x0, pass
+	// If not, panic
+	mov	x0, xzr // Panic message is null
+	b	panic
+	// restore register
+pass:
 	ldp	x1, x4, [sp]
 	add	sp, sp, #16
 #ifdef CONFIG_CAVIUM_ERRATUM_27456
