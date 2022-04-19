@@ -142,8 +142,8 @@ ENDPROC(cpu_do_resume)
  */
 ENTRY(cpu_do_switch_mm)
 #ifdef CONFIG_RKP
-	// smc uses x1~x7 as argument, therefore move x0 elsewhere.
-	mov	x4, x0
+	// smc uses x1~x2 as argument, therefore move x0 elsewhere.
+	mov	x2, x0
 #ifdef CONFIG_QCOM_FALKOR_ERRATUM_1003
 alternative_if ARM64_WORKAROUND_QCOM_FALKOR_E1003
 	//mov	x0, #OPTEE_RKP_SMCCC_CALL_WORKAROUND_QCOM_FALKOR_E1003
@@ -153,17 +153,17 @@ alternative_if ARM64_WORKAROUND_QCOM_FALKOR_E1003
 	movk	x0, #OPTEE_RKP_SMCCC_CALL_WORKAROUND_QCOM_FALKOR_E1003_HIGH_HIGH, lsl #48
 	// arguments are x1, x4 (x2, x3 are scratch?)
 	sub	sp, sp, #16	// open up stack space
-	stp	x1, x4, [sp]	// push x1, x4
+	stp	x1, x2, [sp]	// push x1, x4
 	// raw call, OEN 54, funcid 0, 64-bit fast
 	smc	#0
-	ldp	x1, x4, [sp]
+	ldp	x1, x2, [sp]
 	add	sp, sp, #16
 alternative_else_nop_endif
 #endif
 	mmid	x1, x1			// get mm->context.id
-	bfi	x4, x1, #48, #16	// set the ASID
+	bfi	x2, x1, #48, #16	// set the ASID
 	sub	sp, sp, #16
-	stp	x1, x4, [sp]
+	stp	x1, x2, [sp]
 	//mov x0, #OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1
 	mov	x0, #OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1_LOW_LOW
 	movk	x0, #OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1_LOW_HIGH, lsl #16
@@ -179,7 +179,7 @@ alternative_else_nop_endif
 	b	panic
 	// restore register
 pass:
-	ldp	x1, x4, [sp]
+	ldp	x1, x2, [sp]
 	add	sp, sp, #16
 #ifdef CONFIG_CAVIUM_ERRATUM_27456
 alternative_if ARM64_WORKAROUND_CAVIUM_27456
