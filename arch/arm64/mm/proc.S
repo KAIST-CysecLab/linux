@@ -141,65 +141,16 @@ ENDPROC(cpu_do_resume)
  *	- pgd_phys - physical address of new TTB
  */
 ENTRY(cpu_do_switch_mm)
-#ifdef CONFIG_RKP
-	// smc uses x1~x2 as argument, therefore move x0 elsewhere.
-	mov	x2, x0
-#ifdef CONFIG_QCOM_FALKOR_ERRATUM_1003
-alternative_if ARM64_WORKAROUND_QCOM_FALKOR_E1003
-	//mov	x0, #OPTEE_RKP_SMCCC_CALL_WORKAROUND_QCOM_FALKOR_E1003
-	mov	x0, #OPTEE_RKP_SMCCC_CALL_WORKAROUND_QCOM_FALKOR_E1003_LOW_LOW
-	movk	x0, #OPTEE_RKP_SMCCC_CALL_WORKAROUND_QCOM_FALKOR_E1003_LOW_HIGH, lsl #16
-	movk	x0, #OPTEE_RKP_SMCCC_CALL_WORKAROUND_QCOM_FALKOR_E1003_HIGH_LOW, lsl #32
-	movk	x0, #OPTEE_RKP_SMCCC_CALL_WORKAROUND_QCOM_FALKOR_E1003_HIGH_HIGH, lsl #48
-	// arguments are x1, x4 (x2, x3 are scratch?)
-	sub	sp, sp, #16	// open up stack space
-	stp	x1, x2, [sp]	// push x1, x4
-	// raw call, OEN 54, funcid 0, 64-bit fast
-	smc	#0
-	ldp	x1, x2, [sp]
-	add	sp, sp, #16
-alternative_else_nop_endif
-#endif
-	mmid	x1, x1			// get mm->context.id
-	bfi	x2, x1, #48, #16	// set the ASID
-	sub	sp, sp, #16
-	stp	x1, x2, [sp]
-	//mov x0, #OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1
-	mov	x0, #OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1_LOW_LOW
-	movk	x0, #OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1_LOW_HIGH, lsl #16
-	movk	x0, #OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1_HIGH_LOW, lsl #32
-	movk	x0, #OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1_HIGH_HIGH, lsl #48
-	// raw call, OEN 53, funcid 0, 64-bit fast
-	smc	#0
-	isb
-	// did I do well?
-	cbz	x0, pass
-	// If not, panic
-	mov	x0, xzr // Panic message is null
-	b	panic
-	// restore register
-pass:
-	ldp	x1, x2, [sp]
-	add	sp, sp, #16
-#ifdef CONFIG_CAVIUM_ERRATUM_27456
-alternative_if ARM64_WORKAROUND_CAVIUM_27456
-	// nothing to preserve, since this erratum uses nothing
-	//mov x0, #OPTEE_RKP_SMCCC_CALL_WORKAROUND_CAVIUM_27456
-	mov	x0, #OPTEE_RKP_SMCCC_CALL_WORKAROUND_CAVIUM_27456_LOW_LOW
-	movk	x0, #OPTEE_RKP_SMCCC_CALL_WORKAROUND_CAVIUM_27456_LOW_HIGH, lsl #16
-	movk	x0, #OPTEE_RKP_SMCCC_CALL_WORKAROUND_CAVIUM_27456_HIGH_LOW, lsl #32
-	movk	x0, #OPTEE_RKP_SMCCC_CALL_WORKAROUND_CAVIUM_27456_HIGH_HIGH, lsl #48
-	smc	#0
-alternative_else_nop_endif
-#endif
-#else
 	pre_ttbr0_update_workaround x0, x2, x3
 	mmid	x1, x1				// get mm->context.id
 	bfi	x0, x1, #48, #16		// set the ASID
+#ifdef CONFIG_RKP
+	rkp_emulate_msr	OPTEE_RKP_REG_TTBR, x0
+#else
 	msr	ttbr0_el1, x0			// set TTBR0
+#endif
 	isb
 	post_ttbr0_update_workaround
-#endif
 	ret
 ENDPROC(cpu_do_switch_mm)
 

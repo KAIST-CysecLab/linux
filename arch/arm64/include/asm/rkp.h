@@ -18,49 +18,44 @@
 
 #include <linux/arm-smccc.h>
 
-#define OPTEE_RKP_SMCCC_CALL_WORKAROUND_QCOM_FALKOR_E1003 \
-    ARM_SMCCC_CALL_VAL(1,1,54,0)
-
-#define OPTEE_RKP_SMCCC_CALL_WORKAROUND_QCOM_FALKOR_E1003_LOW_LOW \
-    OPTEE_RKP_SMCCC_CALL_WORKAROUND_QCOM_FALKOR_E1003 & 0xFFFF
-
-#define OPTEE_RKP_SMCCC_CALL_WORKAROUND_QCOM_FALKOR_E1003_LOW_HIGH \
-    (OPTEE_RKP_SMCCC_CALL_WORKAROUND_QCOM_FALKOR_E1003 & 0xFFFF0000) >> 16
-
-#define OPTEE_RKP_SMCCC_CALL_WORKAROUND_QCOM_FALKOR_E1003_HIGH_LOW \
-    (OPTEE_RKP_SMCCC_CALL_WORKAROUND_QCOM_FALKOR_E1003 & 0xFFFF00000000) >> 32
-
-#define OPTEE_RKP_SMCCC_CALL_WORKAROUND_QCOM_FALKOR_E1003_HIGH_HIGH \
-    (OPTEE_RKP_SMCCC_CALL_WORKAROUND_QCOM_FALKOR_E1003 & 0xFFFF000000000000) >> 48
-
 #define OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1 \
     ARM_SMCCC_CALL_VAL(1,1,53,0)
 
-#define OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1_LOW_LOW \
-    OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1 & 0xFFFF
+#define OPTEE_RKP_OWNER 53
+#define OPTEE_RKP_FUNC_UPPER    (ARM_SMCCC_CALL_VAL(1,1,53,0) >> 16) & 0xFFFF
 
-#define OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1_LOW_HIGH \
-    (OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1 & 0xFFFF0000) >> 16
+#define OPTEE_RKP_REG_TTBR 0
 
-#define OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1_HIGH_LOW \
-    (OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1 & 0xFFFF00000000) >> 32
+#ifdef __ASSEMBLY__
+/* define assembler macros */
 
-#define OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1_HIGH_HIGH \
-    (OPTEE_RKP_SMCCC_CALL_SET_TTBR0_EL1 & 0xFFFF000000000000) >> 48
+    .macro  rkp_emulate_msr, reg, param1
+    // save x0-x1
+    stp x0, x1, [sp, #-0x10]!
+    mov x1, \param1
+    mov x0, \reg
+    movk    x0, #OPTEE_RKP_FUNC_UPPER, lsl #16
+    // msr register-to-emulate
+    smc #0
+    // restore x0-x1
+    ldp x0, x1, [sp], #0x10
+    .endm
 
-#define OPTEE_RKP_SMCCC_CALL_WORKAROUND_CAVIUM_27456 \
-    ARM_SMCCC_CALL_VAL(1,1,54,1)
+#else
+/* define C macros */
+#define rkp_write_sysreg(v, r) do {                         \
+        u64 __val = (u64)(v);                               \
+        asm volatile (                                      \
+            "stp x0, x1, [sp, #-0x10]!\n\t"                 \
+            "mov x1, %0\n\t"                                \
+            "mov x0, %1\n\t"                                \
+            "movk x0, #OPTEE_RKP_FUNC_UPPER, lsl #16\n\t"   \
+            "smc #0\n\t"                                    \
+            "ldp x0, x1, [sp], #0x10\n\t"                   \
+            :: "r"(__val), "I"(r)                           \
+        );                                                  \
+    } while (0)
+#endif
 
-#define OPTEE_RKP_SMCCC_CALL_WORKAROUND_CAVIUM_27456_LOW_LOW \
-    OPTEE_RKP_SMCCC_CALL_WORKAROUND_CAVIUM_27456 & 0xFFFF
-
-#define OPTEE_RKP_SMCCC_CALL_WORKAROUND_CAVIUM_27456_LOW_HIGH \
-    (OPTEE_RKP_SMCCC_CALL_WORKAROUND_CAVIUM_27456 & 0xFFFF0000) >> 16
-
-#define OPTEE_RKP_SMCCC_CALL_WORKAROUND_CAVIUM_27456_HIGH_LOW \
-    (OPTEE_RKP_SMCCC_CALL_WORKAROUND_CAVIUM_27456 & 0xFFFF00000000) >> 32
-
-#define OPTEE_RKP_SMCCC_CALL_WORKAROUND_CAVIUM_27456_HIGH_HIGH \
-    (OPTEE_RKP_SMCCC_CALL_WORKAROUND_CAVIUM_27456 & 0xFFFF00000000) >> 48
 
 #endif
