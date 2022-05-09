@@ -34,9 +34,8 @@
     stp x0, x1, [sp, #-0x10]!
     mov x1, \param1
     mov x0, \reg
-    movk    x0, #OPTEE_RKP_FUNC_UPPER, lsl #16
     // msr register-to-emulate
-    smc #0
+    smc #1
     // restore x0-x1
     ldp x0, x1, [sp], #0x10
     .endm
@@ -49,8 +48,7 @@
             "stp x0, x1, [sp, #-0x10]!\n\t"                 \
             "mov x1, %0\n\t"                                \
             "mov x0, %1\n\t"                                \
-            "movk x0, #OPTEE_RKP_FUNC_UPPER, lsl #16\n\t"   \
-            "smc #0\n\t"                                    \
+            "smc #1\n\t"                                    \
             "ldp x0, x1, [sp], #0x10\n\t"                   \
             :: "r"(__val), "I"(r)                           \
         );                                                  \
